@@ -1,5 +1,6 @@
 #!/bin/bash -ue
 
+cd /home/ubuntu/isucon8-qualify/webapp/nodejs
 source ../env.sh
 
 export DB_DATABASE
