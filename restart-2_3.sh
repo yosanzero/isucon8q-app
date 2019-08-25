@@ -32,7 +32,9 @@ npm install
 
 # restart all service
 # sudo systemctl daemon-reload
-systemctl restart nodejs
+systemctl stop nodejs
+rm -f /var/log/nodejs.log
+systemctl start nodejs
 # systemctl restart mysql
 # sudo systemctl restart redis-server
 # sudo systemctl restart react
