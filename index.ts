@@ -323,7 +323,11 @@ fastify.post("/api/users", async (request, reply) => {
 });
 
 fastify.get("/api/users/:id", { beforeHandler: loginRequired }, async (request, reply) => {
-  const [[user]] = await fastify.mysql.query("SELECT id, nickname FROM users WHERE id = ?", [request.params.id]);
+  const userJson = await redis.get(request.params.id);
+  if (!userJson) {
+    return resError(reply, "forbidden", 403);
+  }
+  const user = JSON.parse(userJson);
   if (user.id !== (await getLoginUser(request))!.id) {
     return resError(reply, "forbidden", 403);
   }
