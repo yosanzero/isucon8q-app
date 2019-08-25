@@ -16,6 +16,7 @@
     "fastify-mysql": "*",
     "fastify-plugin": "*",
     "fastify-static": "*",
+    "ioredis": "^4.14.0",
     "point-of-view": "*",
     "trace-error": "*",
     "ts-node": "*",

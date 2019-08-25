@@ -10,8 +10,24 @@ import path from "path";
 import child_process from "child_process";
 import util from "util";
 import { IncomingMessage } from "http";
+import Redis from "ioredis";
 
 const execFile = util.promisify(child_process.execFile);
+
+const redis = new Redis.Cluster([
+  {
+    port: 6379,
+    host: "192.168.0.211"
+  },
+  {
+    port: 6379,
+    host: "192.168.0.172"
+  },
+  {
+    port: 6379,
+    host: "192.168.0.109"
+  }
+]);
 
 type MySQLResultRows = Array<any> & { insertId: number };
 type MySQLColumnCatalogs = Array<any>;
@@ -99,8 +115,19 @@ async function getLoginUser<T>(request: FastifyRequest<T>): Promise<LoginUser | 
   if (!userId) {
     return Promise.resolve(null);
   } else {
-    const [[row]] = await fastify.mysql.query("SELECT id, nickname FROM users WHERE id = ?", [userId]);
-    return { ...row };
+    let user;
+    let userJson = await redis.get(userId);
+    if (!userJson) {
+      const [[row]] = await fastify.mysql.query("SELECT id, nickname FROM users WHERE id = ?", [userId]);
+      user = row;
+      if (user) {
+        // write with async for high-perfomance
+        redis.set(userId, JSON.stringify(user));
+      }
+    } else {
+      user = JSON.parse(userJson);
+    }
+    return { ...user };
   }
 }
 
