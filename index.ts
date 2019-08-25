@@ -121,8 +121,7 @@ async function getLoginUser<T>(request: FastifyRequest<T>): Promise<LoginUser | 
       const [[row]] = await fastify.mysql.query("SELECT id, nickname FROM users WHERE id = ?", [userId]);
       user = row;
       if (user) {
-        // write with async for high-perfomance
-        redis.set(userId, JSON.stringify(user));
+        await redis.set(userId, JSON.stringify(user));
       }
     } else {
       user = JSON.parse(userJson);
@@ -271,6 +270,7 @@ fastify.get("/", { beforeHandler: fillinUser }, async (request, reply) => {
 });
 
 fastify.get("/initialize", async (_request, reply) => {
+  await redis.flushall();
   await execFile("../../db/init.sh");
 
   reply.code(204);
