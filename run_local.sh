@@ -7,6 +7,7 @@ export DB_HOST
 export DB_PORT
 export DB_USER
 export DB_PASS
+export BASE_URL
 
 export NODE_ENV=development
 $(npm bin)/ts-node-dev index.ts
