@@ -14,20 +14,10 @@ import Redis from "ioredis";
 
 const execFile = util.promisify(child_process.execFile);
 
-const redis = new Redis.Cluster([
-  {
-    port: 6379,
-    host: "192.168.0.211"
-  },
-  {
-    port: 6379,
-    host: "192.168.0.172"
-  },
-  {
-    port: 6379,
-    host: "192.168.0.109"
-  }
-]);
+const redis = new Redis(  {
+  port: 6379,
+  host: "192.168.0.211"
+});
 
 type MySQLResultRows = Array<any> & { insertId: number };
 type MySQLColumnCatalogs = Array<any>;
