@@ -270,6 +270,7 @@ fastify.get("/", { beforeHandler: fillinUser }, async (request, reply) => {
 });
 
 fastify.get("/initialize", async (_request, reply) => {
+  await redis.flushall();
   await execFile("../../db/init.sh");
 
   reply.code(204);
