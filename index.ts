@@ -84,7 +84,7 @@ fastify.decorateRequest("user", null);
 fastify.decorateRequest("administrator", null);
 
 function buildUriFor<T extends IncomingMessage>(request: FastifyRequest<T>) {
-  const uriBase = `http://${request.headers.host}`;
+  const uriBase = process.env.BASE_URL || `http://${request.headers.host}`;
   return (path) => {
     return `${uriBase}${path}`;
   };
