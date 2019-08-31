@@ -69,8 +69,6 @@ interface LoginUser {
   nickname: string;
 }
 
-const SECRET = "tagomoris";
-
 const fastify = createFastify({
   logger: true,
 });
