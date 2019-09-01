@@ -7,16 +7,16 @@ TARGET_ROOT_DIR="/home/ubuntu/nodejs/"
 # target file names and dirs
 COPY_TARGET_FILES=(
     "index.ts"
-    "package.json"
+    "templates"
 )
 
 TARGET_HOST_USER=root
 
 # target hosts name
 TARGET_HOSTS=(
-    "ec2-3-114-216-227.ap-northeast-1.compute.amazonaws.com"
+    # "ec2-3-114-216-227.ap-northeast-1.compute.amazonaws.com"
     # "ec2-3-114-227-172.ap-northeast-1.compute.amazonaws.com"
-    # "ec2-3-114-116-138.ap-northeast-1.compute.amazonaws.com"
+    "ec2-3-114-116-138.ap-northeast-1.compute.amazonaws.com"
 )
 
 cat << EOF > /tmp/restart-express-$$.sh
