@@ -22,6 +22,7 @@
     "ioredis": "^4.14.0",
     "node-dogstatsd": "0.0.7",
     "point-of-view": "*",
+    "sha256": "^0.2.0",
     "trace-error": "*",
     "ts-node": "*",
     "typescript": "*"

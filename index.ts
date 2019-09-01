@@ -14,6 +14,7 @@ import Redis from "ioredis";
 import "./tracer";
 import Dogstatsd from "node-dogstatsd";
 import * as os from 'os';
+import * as sha256 from 'sha256';
 
 const dogstatsd = new Dogstatsd.StatsD(os.hostname());
 
@@ -23,6 +24,76 @@ const redis = new Redis({
   port: 6379,
   host: "192.168.0.211"
 });
+
+// params: login_name, pass_hash, nickname
+redis.defineCommand("saveUser", {
+  numberOfKeys: 1,
+  lua:
+  "val newUserId = redis.call('incr', 'lastUserId'); " +
+  "redis.call('SET', ARGV[1], newUserId); " +
+  "redis.call('HSET', newUserId, 'loginName', ARGV[1]); " + 
+  "redis.call('HSET', newUserId, 'passHash', ARGV[2]); " + 
+  "redis.call('HSET', newUserId, 'nickName', ARGV[3]); " + 
+  "return newUserId; "
+});
+
+// params: login_name
+redis.defineCommand("findUserByName", {
+  numberOfKeys: 1,
+  lua:
+  "val userId = redis.call('GET', ARGV[1]); " +
+  "val loginName = redis.call('HGET', userId, 'loginName'); " + 
+  "val passHash = redis.call('HGET', userId, 'passHash'); " + 
+  "val nickName = redis.call('HGET', userId, 'nickName'); " + 
+  "return {userId, loginName, passHash, nickName}; "
+});
+
+// params: user_id
+redis.defineCommand("findUserById", {
+  numberOfKeys: 1,
+  lua:
+  "val userId = ARGV[1]; " +
+  "val loginName = redis.call('HGET', userId, 'loginName'); " + 
+  "val passHash = redis.call('HGET', userId, 'passHash'); " + 
+  "val nickName = redis.call('HGET', userId, 'nickName'); " + 
+  "return {userId, loginName, passHash, nickName}; "
+});
+
+async function saveUser(loginname, password, nickname) {
+  return await saveUserWithPassHash(loginname, sha256(password), nickname);
+}
+
+async function saveUserWithPassHash(loginname, passhash, nickname) {
+  const id = (await redis.incr("lastId")).toString();
+  if (redis.exists(loginname)) {
+    return null;
+  }
+  await redis.set(loginname, id);
+  await redis.hset(id, 'loginname', loginname);
+  await redis.hset(id, 'passhash', passhash);
+  await redis.hset(id, 'nickname', nickname);
+  return id;
+}
+
+async function findUserById(id) {
+  const loginname = await redis.hget(id, 'loginname');
+  if (!loginname) {
+    return null;
+  }
+  const passhash = await redis.hget(id, 'passhash') as string;
+  const nickname = await redis.hget(id, 'nickname') as string;
+  return { id, loginname, passhash, nickname };
+}
+
+async function findUserByName(loginname) {
+  const id = await redis.get(loginname);
+  if (!id) {
+    return null;
+  }
+  const passhash = await redis.hget(id, 'passhash') as string;
+  const nickname = await redis.hget(id, 'nickname') as string;
+  return { id, loginname, passhash, nickname };
+}
 
 type MySQLResultRows = Array<any> & { insertId: number };
 type MySQLColumnCatalogs = Array<any>;
@@ -104,22 +175,19 @@ async function getConnection() {
 }
 
 async function getLoginUser<T>(request: FastifyRequest<T>): Promise<LoginUser | null> {
-  const userId = JSON.parse(request.cookies.user_id || "null");
+  const userId = request.cookies.user_id;
   if (!userId) {
     return Promise.resolve(null);
+  }
+
+  const user = await findUserById(userId);
+  if (!user) {
+    return Promise.resolve(null);
   } else {
-    let user;
-    let userJson = await redis.get(userId);
-    if (!userJson) {
-      const [[row]] = await fastify.mysql.query("SELECT id, nickname FROM users WHERE id = ?", [userId]);
-      user = row;
-      if (user) {
-        await redis.set(userId, JSON.stringify(user));
-      }
-    } else {
-      user = JSON.parse(userJson);
-    }
-    return { ...user };
+    return {
+      id: user.id,
+      nickname: user.nickname
+    };
   }
 }
 
@@ -265,9 +333,9 @@ fastify.get("/", { beforeHandler: fillinUser }, async (request, reply) => {
 fastify.get("/initialize", async (_request, reply) => {
   // await redis.flushall();
   await execFile("../../db/init.sh");
-  const users = await fastify.mysql.query("SELECT id, nickname FROM users");
+  const users = await fastify.mysql.query("SELECT id, login_name, pass_hash, nickname FROM users");
   users.forEach(async (user) => {
-    await redis.set(user['id'], JSON.stringify(user));
+    await saveUserWithPassHash(user['login_name'], user['pass_hash'], user['nickname'])
   });
   reply.code(204);
 });
@@ -286,14 +354,13 @@ fastify.post("/api/users", async (request, reply) => {
 
   await conn.beginTransaction();
   try {
-    const [[duplicatedRow]] = await conn.query("SELECT * FROM users WHERE login_name = ?", [loginName]);
-    if (duplicatedRow) {
+    const exists = await redis.exists(loginName);
+    if (exists) {
       resError(reply, "duplicated", 409);
       done = true;
       await conn.rollback();
     } else {
-      const [result] = await conn.query("INSERT INTO users (login_name, pass_hash, nickname) VALUES (?, SHA2(?, 256), ?)", [loginName, password, nickname]);
-      userId = result.insertId;
+      userId = await saveUser(loginName, password, nickname);
     }
 
     await conn.commit();
@@ -318,11 +385,10 @@ fastify.post("/api/users", async (request, reply) => {
 });
 
 fastify.get("/api/users/:id", { beforeHandler: loginRequired }, async (request, reply) => {
-  const userJson = await redis.get(request.params.id);
-  if (!userJson) {
+  const user = await findUserById(request.params.id) as any;
+  if (!user) {
     return resError(reply, "forbidden", 403);
   }
-  const user = JSON.parse(userJson);
   if (user.id !== (await getLoginUser(request))!.id) {
     return resError(reply, "forbidden", 403);
   }
