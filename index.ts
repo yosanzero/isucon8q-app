@@ -11,6 +11,7 @@ import child_process from "child_process";
 import util from "util";
 import { IncomingMessage } from "http";
 import Redis from "ioredis";
+import "./tracer";
 
 const execFile = util.promisify(child_process.execFile);
 
