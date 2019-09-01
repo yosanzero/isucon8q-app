@@ -12,6 +12,10 @@ import util from "util";
 import { IncomingMessage } from "http";
 import Redis from "ioredis";
 import "./tracer";
+import Dogstatsd from "node-dogstatsd";
+import * as os from 'os';
+
+const dogstatsd = new Dogstatsd.StatsD(os.hostname());
 
 const execFile = util.promisify(child_process.execFile);
 
@@ -279,6 +283,8 @@ fastify.get("/initialize", async (_request, reply) => {
 });
 
 fastify.post("/api/users", async (request, reply) => {
+  dogstatsd.increment("post.api.users");
+
   const nickname = request.body.nickname;
   const loginName = request.body.login_name;
   const password = request.body.password;
