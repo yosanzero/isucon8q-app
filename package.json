@@ -20,6 +20,7 @@
     "fastify-plugin": "*",
     "fastify-static": "*",
     "ioredis": "^4.14.0",
+    "node-dogstatsd": "0.0.7",
     "point-of-view": "*",
     "trace-error": "*",
     "ts-node": "*",
