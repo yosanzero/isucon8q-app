@@ -14,6 +14,7 @@ import Redis from "ioredis";
 import "./tracer";
 import Dogstatsd from "node-dogstatsd";
 import * as os from 'os';
+import fastifyDatadog from 'fastify-datadog';
 
 const dogstatsd = new Dogstatsd.StatsD(os.hostname());
 
@@ -67,6 +68,8 @@ interface LoginUser {
 const fastify = createFastify({
   logger: true,
 });
+
+fastify.register(fastifyDatadog, { dogstatsd });
 
 fastify.register(fastifyStatic, {
   root: path.join(__dirname, "public"),

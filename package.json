@@ -16,6 +16,7 @@
     "ejs": "*",
     "fastify": "^1.11.2",
     "fastify-cookie": "*",
+    "fastify-datadog": "^1.0.3",
     "fastify-mysql": "*",
     "fastify-plugin": "*",
     "fastify-static": "*",
