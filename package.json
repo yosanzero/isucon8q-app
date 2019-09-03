@@ -10,6 +10,7 @@
     "@types/ioredis": "^4.0.15",
     "@types/node": "^10",
     "@types/node-dogstatsd": "0.0.4",
+    "alasql": "^0.4.11",
     "cookie-signature": "^1.1.0",
     "core-js": "^3.0.0-beta.3",
     "dd-trace": "^0.14.1",

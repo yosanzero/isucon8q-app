@@ -16,6 +16,7 @@ import Dogstatsd from "node-dogstatsd";
 import * as os from 'os';
 import * as cluster from 'cluster';
 import fastifyDatadog from 'fastify-datadog';
+import alasql from 'alasql';
 
 const dogstatsd = new Dogstatsd.StatsD(os.hostname());
 
@@ -201,6 +202,8 @@ async function getEvent(eventId: number, loginUserId?: number): Promise<Event | 
 
   const [sheetRows] = await fastify.mysql.query("SELECT * FROM sheets ORDER BY `rank`, num");
 
+  const [reservations] = await fastify.mysql.query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", [event.id]);
+
   for (const sheetRow of sheetRows) {
     const sheet = { ...sheetRow };
     if (!event.sheets[sheet.rank].price) {
@@ -210,7 +213,7 @@ async function getEvent(eventId: number, loginUserId?: number): Promise<Event | 
     event.total++;
     event.sheets[sheet.rank].total++;
 
-    const [[reservation]] = await fastify.mysql.query("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", [event.id, sheet.id]);
+    const [reservation] = alasql("SELECT * FROM ? WHERE sheet_id = ?", [reservations, sheet.id]);
     if (reservation) {
       if (loginUserId && reservation.user_id === loginUserId) {
         sheet.mine = true;
