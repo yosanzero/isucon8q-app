@@ -14,7 +14,8 @@ import Redis from "ioredis";
 import "./tracer";
 import Dogstatsd from "node-dogstatsd";
 import * as os from 'os';
-import * as fastifyDatadog from 'fastify-datadog';
+import * as cluster from 'cluster';
+import fastifyDatadog from 'fastify-datadog';
 
 const dogstatsd = new Dogstatsd.StatsD(os.hostname());
 
@@ -734,9 +735,16 @@ function resError(reply, error: string = "unknown", status: number = 500) {
     .send({ error });
 }
 
-fastify.listen(8080, '0.0.0.0', (err, address) => {
-  if (err) {
-    throw new TraceError("Failed to listening", err);
+if (cluster.isMaster) {
+  const cpuNum = os.cpus().length;
+  for ( let i = 0 ; i < cpuNum ; ++i) {
+    cluster.fork();
   }
-  fastify.log.info(`server listening on ${address}`);
-});
+} else {
+  fastify.listen(8080, '0.0.0.0', (err, address) => {
+    if (err) {
+      throw new TraceError("Failed to listening", err);
+    }
+    fastify.log.info(`server listening on ${address}`);
+  });
+}
