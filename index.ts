@@ -270,7 +270,7 @@ fastify.get("/", { beforeHandler: fillinUser }, async (request, reply) => {
 });
 
 fastify.get("/initialize", async (_request, reply) => {
-  // await redis.flushall();
+  await redis.flushall();
   await execFile("../../db/init.sh");
   const users = await fastify.mysql.query("SELECT id, nickname FROM users");
   users.forEach(async (user) => {
@@ -485,7 +485,7 @@ fastify.delete("/api/events/:id/sheets/:rank/:num/reservation", { beforeHandler:
     return resError(reply, "invalid_rank", 404);
   }
 
-  const [[sheetRow]] = await fastify.mysql.query("SELECT * FROM sheets WHERE `rank` = ? AND num = ?", [rank, num]);
+  const [[sheetRow]] = await fastify.mysql.query("SELECT id FROM sheets WHERE `rank` = ? AND num = ?", [rank, num]);
   if (!sheetRow) {
     return resError(reply, "invalid_sheet", 404);
   }
