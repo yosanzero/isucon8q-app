@@ -15,7 +15,7 @@
     "core-js": "^3.0.0-beta.3",
     "dd-trace": "^0.14.1",
     "ejs": "*",
-    "fastify": "^1.11.2",
+    "fastify": "^2.15.1",
     "fastify-cookie": "*",
     "fastify-datadog": "^1.0.3",
     "fastify-mysql": "*",
